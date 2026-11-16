@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型管理</title>
+<style>
+:root { color-scheme: light; font: 15px/1.55 "Geist", "Microsoft YaHei UI", sans-serif; color: #182729; background: #f3f6f5; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { width: min(980px, calc(100% - 36px)); margin: 46px auto; }
+h1 { font-size: 35px; margin: 0; letter-spacing: -.05em; }
+h2 { font-size: 19px; margin: 0; }
+p { margin: 6px 0 0; color: #526663; }
+.panel { margin-top: 24px; border: 1px solid #d7e2df; border-radius: 14px; background: white; padding: 22px; }
+.heading, .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 18px; }
+h3 { font-size: 13px; margin: 0 0 8px; color: #48635e; }
+.model, .candidate { border-top: 1px solid #e5eeec; padding: 10px 0; }
+.name { display: block; font-weight: 650; overflow-wrap: anywhere; }
+.detail { display: block; color: #526663; font-size: 13px; overflow-wrap: anywhere; }
+button { cursor: pointer; border: 0; border-radius: 8px; padding: 9px 14px; background: #daebe5; color: #0c4436; font: inherit; font-weight: 650; }
+button.primary { background: #135b48; color: white; }
+button:disabled { opacity: .45; cursor: default; }
+input[type=search] { border: 1px solid #c9d8d3; border-radius: 8px; width: 100%; margin: 16px 0 7px; padding: 9px 11px; background: white; color: inherit; font: inherit; }
+input[type=checkbox] { accent-color: #135b48; width: 17px; height: 17px; margin: 4px 1px; }
+.candidate { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: baseline; gap: 6px; width: 100%; }
+#candidates { max-height: 360px; overflow: auto; }
+.actions { margin-top: 14px; }
+[hidden] { display: none !important; }
+.error { color: #9e302d; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #178573; outline-offset: 2px; }
+#chat-form { margin-top: 16px; }
+.chat-controls { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
+#chat-form label { display: block; margin-top: 10px; font-weight: 650; }
+#chat-form select, #chat-form textarea {
+  display: block; width: 100%; margin-top: 5px; padding: 9px 11px; border: 1px solid #c9d8d3;
+  border-radius: 8px; background: white; color: inherit; font: inherit; font-weight: 400;
+}
+#chat-form textarea { resize: vertical; }
+.optional { color: #526663; font-size: 13px; font-weight: 400; }
+#chat-history { display: grid; gap: 10px; margin-top: 16px; max-height: 35vh; overflow: auto; }
+#chat-history:empty { display: none; }
+.turn { padding: 10px 12px; border: 1px solid #d7e2df; border-radius: 8px; }
+.turn.user { background: #f0f6f4; }
+.turn p { color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+#chat-status { min-height: 1.55em; margin: 0; }
+@media (max-width: 580px) { main { margin: 24px auto; } .grid { grid-template-columns: 1fr; gap: 10px; } .panel { padding: 16px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="heading">
+    <h1>模型管理</h1>
+    <button class="primary" type="button" id="open-chat" aria-controls="chat" aria-expanded="false">纯对话</button>
+  </div>
+  <p>Claude Code、DeepSeek Harness 和 WorkBuddy 共用这份清单。</p>
+  <section class="panel" id="chat" aria-labelledby="chat-title" hidden>
+    <div class="heading"><h2 id="chat-title">纯对话</h2><button type="button" id="chat-clear" disabled>清空对话</button></div>
+    <p class="detail">按所选模型使用原有额度。对话记录仅保留在当前页面。</p>
+    <form id="chat-form">
+      <div class="chat-controls">
+        <label>模型<select id="chat-model" disabled></select></label>
+        <label>思考档位<select id="chat-effort" disabled></select></label>
+      </div>
+      <label>系统提示词 <span class="optional">可留空</span><textarea id="chat-system" rows="2"></textarea></label>
+      <div id="chat-history" role="log" aria-label="对话记录"></div>
+      <label>消息<textarea id="chat-input" rows="3" required></textarea></label>
+      <div class="actions"><p class="detail" id="chat-status" role="status"></p><button class="primary" id="chat-send" disabled>发送</button></div>
+    </form>
+  </section>
+  <section class="panel" aria-labelledby="current-title">
+    <div class="heading">
+      <h2 id="current-title">已同步的模型 <span id="count" class="optional"></span></h2>
+      <button type="button" id="restart" disabled>重启客户端</button>
+    </div>
+    <p id="restart-status" class="detail" role="status">重启时，已打开的客户端会中断当前任务并重新加载配置。</p>
+    <div class="grid">
+      <div><h3>OpenAI 官方</h3><div id="openai"></div></div>
+      <div><h3>WorkBuddy</h3><div id="workbuddy"></div></div>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="candidate-title">
+    <div class="heading"><h2 id="candidate-title">OpenAI 模型更新</h2><button id="check">检查更新</button></div>
+    <p id="status" role="status">检查你当前 API 项目可见的模型。勾选并确认后才会同步。</p>
+    <div id="review" hidden>
+      <input type="search" id="search" aria-label="搜索模型 ID" placeholder="搜索模型 ID">
+      <div id="candidates"></div>
+      <div class="actions"><span id="selected"></span><button class="primary" id="apply" disabled>确认并同步</button></div>
+    </div>
+  </section>
+</main>
+<script>
+const query = id => document.getElementById(id);
+const status = query('status');
+const search = query('search');
+const apply = query('apply');
+const check = query('check');
+const restart = query('restart');
+const restartStatus = query('restart-status');
+const openChat = query('open-chat');
+const chat = query('chat');
+const chatModel = query('chat-model');
+const chatEffort = query('chat-effort');
+const chatSystem = query('chat-system');
+const chatInput = query('chat-input');
+const chatStatus = query('chat-status');
+const chatSend = query('chat-send');
+const chatClear = query('chat-clear');
+const chatHistory = query('chat-history');
+const draft = new Map();
+const turns = [];
+let activeModels = [];
+let sending = false;
+let candidates = [];
+let pending = 0;
+let saving = false;
+let restarting = false;
+const incoming = location.hash.slice(1);
+if (incoming) {
+  sessionStorage.setItem('managerToken', incoming);
+  history.replaceState(null, '', location.pathname);
+}
+const token = sessionStorage.getItem('managerToken');
+
+async function api(path, body) {
+  const response = await fetch('/manage/api/' + path, {
+    method: body ? 'POST' : 'GET',
+    headers: {authorization: 'Bearer ' + token, ...(body ? {'Content-Type': 'application/json'} : {})},
+    body: body && JSON.stringify(body),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error?.message ?? result.error ?? '请求失败。');
+  return result;
+}
+
+function message(text, error = false) {
+  status.textContent = text;
+  status.classList.toggle('error', error);
+}
+
+function modelDetail(model) {
+  return model.efforts.length ? model.efforts.map(e => e === 'none' ? '关闭' : e).join(' / ') : '无思考档位';
+}
+
+function showActive(models) {
+  activeModels = models;
+  query('count').textContent = models.length + ' 个';
+  const selected = chatModel.value;
+  const chosenEffort = chatEffort.value;
+  chatModel.replaceChildren();
+  for (const provider of ['openai', 'workbuddy']) {
+    const group = document.createElement('optgroup');
+    group.label = provider === 'openai' ? 'OpenAI 官方' : 'WorkBuddy';
+    const providerModels = models.filter(model => model.provider === provider);
+    for (const {id, name} of providerModels) group.append(new Option(name, id));
+    if (providerModels.length) chatModel.append(group);
+    query(provider).replaceChildren(...providerModels.map(model => {
+      const row = document.createElement('div');
+      row.className = 'model';
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = model.name;
+      const detail = document.createElement('span');
+      detail.className = 'detail';
+      detail.textContent = modelDetail(model);
+      row.append(name, detail);
+      return row;
+    }));
+  }
+  if (models.some(model => model.id === selected)) chatModel.value = selected;
+  else if (models.length) chatModel.value = models[0].id;
+  showEfforts(chatModel.value === selected ? chosenEffort : undefined);
+}
+
+function showEfforts(chosen) {
+  const model = activeModels.find(model => model.id === chatModel.value);
+  const options = model?.efforts ?? [];
+  chatEffort.replaceChildren(...(options.length ? options.map(effort =>
+    new Option(effort === 'none' ? '关闭' : effort, effort)) : [new Option('无思考档位', '')]));
+  chatEffort.value = options.includes(chosen) ? chosen : model?.defaultEffort ?? '';
+  chatControls();
+}
+
+function chatControls() {
+  chatModel.disabled = sending || !activeModels.length;
+  chatEffort.disabled = sending || !chatEffort.value;
+  chatSystem.disabled = sending;
+  chatInput.disabled = sending;
+  chatSend.disabled = sending || !activeModels.length || !chatInput.value.trim();
+  chatClear.disabled = sending || !turns.length;
+}
+
+openChat.addEventListener('click', () => {
+  chat.hidden = !chat.hidden;
+  openChat.setAttribute('aria-expanded', String(!chat.hidden));
+  openChat.textContent = chat.hidden ? '纯对话' : '收起对话';
+  if (!chat.hidden) (chatModel.disabled ? chatSystem : chatModel).focus();
+});
+chatModel.addEventListener('change', () => showEfforts());
+chatInput.addEventListener('input', chatControls);
+chatClear.addEventListener('click', () => {
+  turns.length = 0;
+  chatHistory.replaceChildren();
+  chatStatus.textContent = '';
+  chatStatus.classList.remove('error');
+  chatControls();
+  chatInput.focus();
+});
+query('chat-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (chatSend.disabled) return;
+  const user = {role: 'user', content: chatInput.value};
+  const model = chatModel.value;
+  const effort = chatEffort.value || undefined;
+  const label = chatModel.selectedOptions[0].textContent +
+    (effort ? ' · ' + chatEffort.selectedOptions[0].textContent : '');
+  const system = chatSystem.value;
+  sending = true;
+  chatControls();
+  chatStatus.classList.remove('error');
+  chatStatus.textContent = '正在等待模型回复…';
+  try {
+    const result = await api('chat', {model, effort, system, messages: [...turns, user]});
+    const choice = result.choices?.[0];
+    const content = choice?.message?.content;
+    if (typeof content !== 'string' || !content.trim()) throw new Error(
+      choice?.finish_reason === 'length' ? '模型在生成正文前已达到输出上限。' : '模型未返回正文。');
+    const assistant = {role: 'assistant', content};
+    turns.push(user, assistant);
+    for (const turn of [user, assistant]) {
+      const row = document.createElement('article');
+      row.className = 'turn ' + turn.role;
+      const author = document.createElement('span');
+      author.className = 'detail';
+      author.textContent = turn.role === 'user' ? '你' : label;
+      const text = document.createElement('p');
+      text.textContent = turn.content;
+      row.append(author, text);
+      chatHistory.append(row);
+    }
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+    chatInput.value = '';
+    chatStatus.textContent = choice.finish_reason === 'length' ? '回复已达到输出上限。' : '';
+  } catch (error) {
+    chatStatus.textContent = error.message;
+    chatStatus.classList.add('error');
+  } finally {
+    sending = false;
+    chatControls();
+    if (!chat.hidden) chatInput.focus();
+  }
+});
+
+function showSelection() {
+  query('selected').textContent = '已勾选 ' + draft.size + ' 个';
+  apply.disabled = draft.size === 0 || pending > 0 || saving || restarting;
+  check.disabled = pending > 0 || saving;
+  restart.disabled = !activeModels.length || saving || restarting;
+}
+
+function showCandidates() {
+  const key = search.value.trim().toLowerCase();
+  const matches = candidates.filter(candidate => candidate.id.includes(key));
+  query('candidates').replaceChildren(...matches.map(({id, shutdown}) => {
+    const row = document.createElement('label');
+    row.className = 'candidate';
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = draft.has(id);
+    box.disabled = saving;
+    const text = document.createElement('span');
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = id;
+    const detail = document.createElement('span');
+    detail.className = 'detail';
+    const initial = shutdown ? '计划停用 ' + shutdown : '勾选以核对思考档位和接口能力';
+    detail.textContent = draft.has(id) ? modelDetail(draft.get(id)) : initial;
+    box.addEventListener('change', async () => {
+      if (!box.checked) {
+        draft.delete(id);
+        detail.textContent = initial;
+        showSelection();
+        return;
+      }
+      pending++;
+      box.disabled = true;
+      detail.textContent = '正在查阅 OpenAI 官方文档…';
+      showSelection();
+      try {
+        const {model} = await api('inspect?id=' + encodeURIComponent(id));
+        draft.set(id, model);
+        detail.textContent = modelDetail(model);
+      } catch (error) {
+        box.checked = false;
+        detail.textContent = error.message;
+      } finally {
+        pending--;
+        box.disabled = false;
+        showSelection();
+        if (!row.isConnected) showCandidates();
+      }
+    });
+    text.append(name, detail);
+    row.append(box, text);
+    return row;
+  }));
+  if (!matches.length) query('candidates').textContent = '没有匹配的模型。';
+}
+
+check.addEventListener('click', async () => {
+  check.disabled = true;
+  apply.disabled = true;
+  query('review').hidden = true;
+  message('正在读取 OpenAI 官方清单…');
+  try {
+    ({candidates} = await api('check'));
+    draft.clear();
+    search.value = '';
+    query('review').hidden = candidates.length === 0;
+    message(candidates.length ? '账号清单中有 ' + candidates.length + ' 个尚未同步的模型。' : '暂无待同步模型。');
+    showCandidates();
+  } catch (error) {
+    message(error.message, true);
+  } finally {
+    showSelection();
+  }
+});
+
+search.addEventListener('input', showCandidates);
+
+apply.addEventListener('click', async () => {
+  const ids = [...draft.keys()];
+  if (!window.confirm('将以下模型同步到三个客户端：\n\n' + ids.join('\n'))) return;
+  saving = true;
+  showSelection();
+  showCandidates();
+  try {
+    const {models} = await api('apply', {confirm: true, ids});
+    const added = new Set(ids);
+    candidates = candidates.filter(model => !added.has(model.id));
+    draft.clear();
+    showActive(models);
+    message('已同步 ' + ids.length + ' 个模型。点击「重启客户端」加载新的菜单。');
+    restartStatus.textContent = '配置已更新。重启时，已打开的客户端会中断当前任务。';
+    restartStatus.classList.remove('error');
+  } catch (error) {
+    message(error.message, true);
+  } finally {
+    saving = false;
+    showSelection();
+    showCandidates();
+  }
+});
+
+restart.addEventListener('click', async () => {
+  restarting = true;
+  showSelection();
+  restartStatus.classList.remove('error');
+  restartStatus.textContent = '正在重启已打开的客户端…';
+  try {
+    const {clients} = await api('restart', {});
+    const labels = {restarted: '已重启', inactive: '未运行', failed: '重启失败'};
+    restartStatus.textContent = clients.map(({name, status, error}) =>
+      name + ' ' + labels[status] + (error ? '（' + error + '）' : '')).join(' · ');
+    restartStatus.classList.toggle('error', clients.some(client => client.status === 'failed'));
+  } catch (error) {
+    restartStatus.textContent = error.message;
+    restartStatus.classList.add('error');
+  } finally {
+    restarting = false;
+    showSelection();
+  }
+});
+
+api('status').then(({models}) => {
+  showActive(models);
+  showSelection();
+}).catch(error => {
+  message(error.message, true);
+  chatStatus.textContent = error.message;
+  chatStatus.classList.add('error');
+  check.disabled = true;
+});
+</script>
+</body>
+</html>

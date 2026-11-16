@@ -1,0 +1,30 @@
+# Per-machine configuration, keys and runtime data
+openai-key
+gateway-token
+manager-token
+bridge-token
+bridge-runtime-path
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+*.info
+.credentials.yaml
+.credentials.yml
+.claude/
+.workbuddy/
+credentials/
+workbuddy-runtime/
+deployment.json
+claude-settings.json
+harness-providers.yml
+Migration backups/
+
+# Logs, local build outputs and dependencies
+*.log
+*.jsonl
+*.sync
+*.zip
+node_modules/

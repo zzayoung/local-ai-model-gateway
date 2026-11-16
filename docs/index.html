@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local AI Model Gateway | Claude Code、DeepSeek Harness、WorkBuddy 的 Windows 本地模型网关</title>
+  <meta name="description" content="在 Windows 用一个本地网关，让 Claude Code、DeepSeek Harness 和 WorkBuddy 共用 OpenAI 官方 API、WorkBuddy 模型及思考档位。下载部署包，查看配置和常见问题。">
+  <link rel="canonical" href="https://zzayoung.github.io/local-ai-model-gateway/">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Local AI Model Gateway for Windows">
+  <meta property="og:description" content="为 Claude Code、DeepSeek Harness 和 WorkBuddy 提供统一模型清单、思考档位和本地纯对话入口。">
+  <meta property="og:url" content="https://zzayoung.github.io/local-ai-model-gateway/">
+  <meta property="og:locale" content="zh_CN">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Local AI Model Gateway",
+    "url": "https://zzayoung.github.io/local-ai-model-gateway/",
+    "description": "Windows 本地模型网关和模型管理页，支持 Claude Code、DeepSeek Harness、WorkBuddy、OpenAI 官方 API 与 WorkBuddy 模型。",
+    "operatingSystem": "Windows 10, Windows 11",
+    "applicationCategory": "DeveloperApplication",
+    "softwareRequirements": "Node.js 24.5 or later",
+    "downloadUrl": "https://github.com/zzayoung/local-ai-model-gateway/releases/latest"
+  }
+  </script>
+  <style>
+    :root { color-scheme: light dark; --ink: #202721; --muted: #4a584f; --background: #f6f8f4; --surface: #fff; --line: #d6dfd6; --accent: #1f654a; --button: #1f654a; --button-ink: #fff; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #ecf3ed; --muted: #c2d0c7; --background: #131a16; --surface: #1c2620; --line: #384a3e; --accent: #a5d8ba; --button: #a5d8ba; --button-ink: #16251c; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--background); color: var(--ink); font: 16px/1.7 system-ui, "Microsoft YaHei", sans-serif; }
+    main, footer { max-width: 860px; margin: auto; padding-inline: clamp(18px, 5vw, 42px); }
+    header { padding-block: clamp(42px, 9vw, 92px) 28px; border-bottom: 1px solid var(--line); }
+    h1, h2, h3, p { margin: 0; }
+    h1 { max-width: 18ch; font-size: clamp(2.45rem, 8vw, 4.55rem); line-height: 1.04; letter-spacing: -.045em; }
+    h2 { font-size: 1.35rem; line-height: 1.35; margin-bottom: 12px; }
+    h3 { font-size: 1rem; margin-top: 18px; }
+    header p { font-size: 1.08rem; margin-top: 18px; max-width: 52ch; }
+    p + p { margin-top: 14px; }
+    section { padding-block: 28px; border-bottom: 1px solid var(--line); }
+    a { color: var(--accent); text-underline-offset: .2em; }
+    nav { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-top: 22px; }
+    .download { display: inline-block; padding: 8px 13px; border-radius: 6px; background: var(--button); color: var(--button-ink); text-decoration: none; font-weight: 650; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; background: var(--surface); }
+    th, td { padding: 9px 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th:first-child { width: 28%; }
+    code { font-family: ui-monospace, Consolas, monospace; }
+    pre { overflow-x: auto; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+    ol { padding-inline-start: 22px; }
+    footer { padding-block: 24px 34px; color: var(--muted); font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Local AI Model Gateway</h1>
+      <p>在 Windows 上，通过一个本地网关让 Claude Code、DeepSeek Harness 和 WorkBuddy 共用 OpenAI 官方 API、WorkBuddy 模型和各自支持的思考档位。</p>
+      <nav aria-label="项目链接">
+        <a class="download" href="https://github.com/zzayoung/local-ai-model-gateway/releases/latest">下载 Windows 部署包</a>
+        <a href="https://github.com/zzayoung/local-ai-model-gateway">GitHub 源码和安装说明</a>
+        <a href="https://github.com/zzayoung/local-ai-model-gateway/blob/main/README.en.md" lang="en">English guide</a>
+      </nav>
+    </header>
+    <section>
+      <h2>支持的模型和接口</h2>
+      <table>
+        <thead><tr><th scope="col">提供方</th><th scope="col">初始模型</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">OpenAI 官方 API</th><td>GPT-6 Luna、GPT-6.1 Terra、GPT-6.1 Sol、GPT-6 Astra</td></tr>
+          <tr><th scope="row">WorkBuddy</th><td>Hy4、Hy3、DeepSeek V4.1 Flash、GLM-5.3 Flash</td></tr>
+        </tbody>
+      </table>
+      <p>Claude Code 使用 Anthropic Messages 兼容接口，DeepSeek Harness 和 WorkBuddy 使用 OpenAI 兼容接口。三端都连接到 <code>127.0.0.1:8791</code>。模型管理页可检查 OpenAI 新模型，勾选后同步，并一键重启客户端。</p>
+    </section>
+    <section>
+      <h2>在 Windows 上部署</h2>
+      <p>准备 Windows 10 或 11、Node.js 24.5 或更高版本，以及要使用的客户端。解压部署包后，在目录中运行以下命令。</p>
+      <pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1</code></pre>
+      <ol>
+        <li>默认安装到 <code>E:\AI-Tools</code>，使用 <code>-InstallRoot</code> 可切换到其他盘。</li>
+        <li>在目标电脑用浏览器授权 WorkBuddy，并在本机配置 OpenAI 官方 API 密钥。</li>
+        <li>打开桌面入口 <strong>Model Manager - Local Gateway</strong>，验证模型清单和两类模型。网关随当前 Windows 用户登录启动。</li>
+      </ol>
+      <p>也可以把下载的 ZIP 交给 Codex，请它按包内 README 安装并验证。账号授权和 API 密钥在目标机录入。</p>
+    </section>
+    <section>
+      <h2>常见问题</h2>
+      <h3>Claude Code 怎么使用 OpenAI 官方 API？</h3>
+      <p>启动网关提供的 Claude Code 入口，输入 <code>/model</code> 选择模型。网关将 Claude Code 的 Messages 请求转换为 OpenAI Responses 请求，并转发该模型支持的思考档位。</p>
+      <h3>能直接用 WorkBuddy 模型发起纯对话吗？</h3>
+      <p>可以。在模型管理页选模型、思考档位和系统提示词。请求通过本地适配器发到 WorkBuddy 上游，使用自己的账号授权。服务可用性、规则及费用由供应方决定。</p>
+      <h3>新模型会自动同步吗？</h3>
+      <p>模型管理页列出可核对的 OpenAI 候选模型，用户勾选并应用后才同步到三端。</p>
+    </section>
+  </main>
+  <footer><a href="https://github.com/zzayoung/local-ai-model-gateway/blob/main/gateway/bridge/NOTICE.md">WorkBuddy 适配器来源及许可</a> · <a href="https://github.com/zzayoung/local-ai-model-gateway/issues">提交问题</a></footer>
+</body>
+</html>
