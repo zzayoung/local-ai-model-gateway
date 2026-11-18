@@ -75,26 +75,26 @@
     "defaultEffort": "medium"
   },
   {
-    "id": "gpt-6.1-terra",
-    "name": "GPT-6.1 Terra",
+    "id": "gpt-6.2-astra",
+    "name": "GPT-6.2 Astra",
     "provider": "openai",
     "context": 272000,
     "output": 128000,
     "image": true,
     "tools": true,
     "efforts": [
-      "none",
       "low",
       "medium",
       "high",
       "xhigh",
       "max"
     ],
-    "defaultEffort": "medium"
+    "defaultEffort": "medium",
+    "docs": "https://developers.openai.com/api/docs/models/gpt-6.2-astra"
   },
   {
-    "id": "gpt-6.1-sol",
-    "name": "GPT-6.1 Sol",
+    "id": "gpt-6.2-sol",
+    "name": "GPT-6.2 Sol",
     "provider": "openai",
     "context": 272000,
     "output": 128000,
@@ -107,7 +107,8 @@
       "xhigh",
       "max"
     ],
-    "defaultEffort": "medium"
+    "defaultEffort": "medium",
+    "docs": "https://developers.openai.com/api/docs/models/gpt-6.2-sol"
   },
   {
     "id": "gpt-6-astra",

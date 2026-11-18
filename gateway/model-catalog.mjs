@@ -23,7 +23,7 @@ export function claudeOptions(catalog) {
   });
 }
 
-export function applyCatalog(catalog, gateway, token) {
+export function applyCatalog(catalog, gateway, token, replacements = new Map()) {
   const claude = {modelPicker: {replaceBuiltInOptions: true, options: claudeOptions(catalog)
     .map(({id, label, behavesAs}) => ({model: id, label, behavesAs}))}};
   const desktop = join(harnessHome, 'profiles', 'desktop', 'cordis.patch.yml');
@@ -68,9 +68,15 @@ export function applyCatalog(catalog, gateway, token) {
       harness = harness.replace(start, line => line + providers[vendor]);
     }
   }
-  harness = harness.replace(/(    provider: )(openai|workbuddy)\n    model: (\S+)\n(    reasoningEffort: \S+\n)?/,
-    (block, lead, vendor, id) => {
+  harness = harness.replace(/(    provider: )(openai|workbuddy)\n    model: (\S+)\n(?:    reasoningEffort: (\S+)\n)?/,
+    (block, lead, vendor, id, effort) => {
       if (catalog.some(model => model.id === id && model.provider === vendor)) return block;
+      const replacementId = vendor === 'openai' ? replacements.get(id) : undefined;
+      const replacement = catalog.find(model => model.id === replacementId && model.provider === vendor);
+      if (replacement) {
+        const level = replacement.efforts.includes(effort) ? effort : replacement.defaultEffort;
+        return `${lead}${vendor}\n    model: ${replacement.id}\n    reasoningEffort: ${level}\n`;
+      }
       const fallback = catalog[0];
       return `${lead}${fallback.provider}\n    model: ${fallback.id}\n`;
     });

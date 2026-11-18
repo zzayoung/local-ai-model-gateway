@@ -8,10 +8,10 @@
 
 | 提供方 | 初始模型 |
 | --- | --- |
-| OpenAI 官方 API | GPT-6 Luna、GPT-6.1 Terra、GPT-6.1 Sol、GPT-6 Astra |
+| OpenAI 官方 API | GPT-6 Luna、GPT-6.2 Astra、GPT-6.2 Sol、GPT-6 Astra |
 | WorkBuddy | Hy4、Hy3、DeepSeek V4.1 Flash、GLM-5.3 Flash |
 
-各模型的思考档位在 [模型清单](gateway/models.json) 中维护。调用能否成功取决于账号权限、余额及上游当时的服务状态。
+GPT-6.2 Astra 和 Sol 支持 `low`、`medium`、`high`、`xhigh`、`max`，默认 `medium`。各模型的档位见 [模型清单](gateway/models.json)。调用能否成功取决于账号权限、余额及上游当时的服务状态。
 
 | 客户端 | 本地网关接口 | 选择模型 |
 | --- | --- | --- |
@@ -43,6 +43,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -InstallRo
 ```
 
 安装会备份现有的 WorkBuddy 模型配置和目标目录中的 Harness 桌面配置，备份位于 `<InstallRoot>\Migration backups`。Claude Code 配置与工作区、DeepSeek Harness 的新配置目录都在安装根目录下。Windows 任务 `Local AI Model Gateway` 在当前用户登录时启动网关，桌面生成模型管理页和三个客户端入口。若安装时没有找到 Claude Code 或 Harness，可安装后在网关目录的 `deployment.json` 填入对应的 EXE 路径。
+
+从 v0.1.0 升级时，先关闭客户端和网关，再用原安装目录运行新版 `Install.ps1`。安装器备份网关模型清单，将 GPT-6.1 Sol 替换为 GPT-6.2 Sol，将 GPT-6.1 Terra 替换为 GPT-6.2 Astra，并保留手动添加的其他模型。
 
 ## 在目标机授权
 

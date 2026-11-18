@@ -15,6 +15,7 @@ if ($version -notmatch '^v(\d+)\.(\d+)' -or [int]$Matches[1] -lt 24 -or
 }
 $InstallRoot = [IO.Path]::GetFullPath($InstallRoot)
 $gateway = Join-Path $InstallRoot 'Model Gateway'
+$catalog = Join-Path $gateway 'models.json'
 $source = Join-Path $PSScriptRoot 'gateway'
 $harnessHome = Join-Path $InstallRoot 'DeepSeek Harness\home'
 $harnessProfile = Join-Path $harnessHome 'profiles\desktop\cordis.patch.yml'
@@ -50,10 +51,11 @@ foreach ($dir in @($gateway, $runtime, (Split-Path $harnessProfile), (Split-Path
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
 }
 $backup = Join-Path $InstallRoot ('Migration backups\gateway-install-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-foreach ($file in @($harnessProfile, $workBuddyModels)) {
+foreach ($file in @($harnessProfile, $workBuddyModels, $catalog)) {
     if (Test-Path -LiteralPath $file) {
         New-Item -ItemType Directory -Path $backup -Force | Out-Null
-        Copy-Item -LiteralPath $file -Destination $backup
+        $destination = if ($file -eq $catalog) { Join-Path $backup 'gateway-models.json' } else { $backup }
+        Copy-Item -LiteralPath $file -Destination $destination
     }
 }
 Get-ChildItem -LiteralPath $source | Where-Object Name -ne 'models.json' |
@@ -61,7 +63,7 @@ Get-ChildItem -LiteralPath $source | Where-Object Name -ne 'models.json' |
 Get-ChildItem -LiteralPath $source -Filter '*.ps1' -File | ForEach-Object {
     Unblock-File -LiteralPath (Join-Path $gateway $_.Name)
 }
-if (!(Test-Path -LiteralPath (Join-Path $gateway 'models.json'))) {
+if (!(Test-Path -LiteralPath $catalog)) {
     Copy-Item -LiteralPath (Join-Path $source 'models.json') -Destination $gateway
 }
 $deployment = @{
@@ -101,7 +103,7 @@ if (!(Test-Path -LiteralPath $claudeSettings)) {
     [IO.File]::WriteAllText($claudeSettings, '{"hasCompletedOnboarding":true}', $utf8)
 }
 $env:DSH_HOME = $harnessHome
-& $node (Join-Path $gateway 'openai-claude-gateway.mjs') --sync
+& $node (Join-Path $gateway 'openai-claude-gateway.mjs') --sync (Join-Path $source 'models.json')
 if ($LASTEXITCODE -ne 0) { throw 'Model catalog sync failed.' }
 if (!$SkipStart) {
     & (Join-Path $gateway 'Start-AiModelGateway.ps1')

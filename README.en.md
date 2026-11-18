@@ -6,10 +6,10 @@ Local AI Model Gateway connects **Claude Code, DeepSeek Harness, and WorkBuddy**
 
 | Provider | Models in the initial catalog |
 | --- | --- |
-| OpenAI | GPT-6 Luna, GPT-6.1 Terra, GPT-6.1 Sol, GPT-6 Astra |
+| OpenAI | GPT-6 Luna, GPT-6.2 Astra, GPT-6.2 Sol, GPT-6 Astra |
 | WorkBuddy | Hy4, Hy3, DeepSeek V4.1 Flash, GLM-5.3 Flash |
 
-See [models.json](gateway/models.json) for the reasoning levels configured per model. Availability and charges depend on the upstream service and your account.
+GPT-6.2 Astra and Sol support `low`, `medium`, `high`, `xhigh`, and `max`, with `medium` as the default. See [models.json](gateway/models.json) for each model's settings. Availability and charges depend on the upstream service and your account.
 
 ## Install on Windows
 
@@ -27,3 +27,7 @@ See [models.json](gateway/models.json) for the reasoning levels configured per m
 Claude Code connects to the gateway's Anthropic Messages-compatible endpoint. DeepSeek Harness and WorkBuddy use local OpenAI-compatible endpoints. The direct chat entry uses the system prompt supplied in the browser and calls the WorkBuddy service through the adapter without starting the desktop client. Upstream service rules and usage charges still apply.
 
 The WorkBuddy adapter comes from [workbuddy-to-dsh](https://github.com/Ianzhyh/workbuddy-to-dsh). See its [MIT license](gateway/bridge/LICENSE) and [attribution](gateway/bridge/NOTICE.md).
+
+## Upgrade from v0.1.0
+
+Stop the clients and gateway, then run the new `Install.ps1` with your existing installation root. The installer backs up the catalog, replaces GPT-6.1 Sol with GPT-6.2 Sol and GPT-6.1 Terra with GPT-6.2 Astra, and keeps any other models you added.

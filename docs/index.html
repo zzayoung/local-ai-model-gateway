@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Local AI Model Gateway | Claude Code、DeepSeek Harness、WorkBuddy 的 Windows 本地模型网关</title>
-  <meta name="description" content="在 Windows 用一个本地网关，让 Claude Code、DeepSeek Harness 和 WorkBuddy 共用 OpenAI 官方 API、WorkBuddy 模型及思考档位。下载部署包，查看配置和常见问题。">
+  <meta name="description" content="在 Windows 用一个本地网关，让 Claude Code、DeepSeek Harness 和 WorkBuddy 使用 GPT-6.2 Sol、GPT-6.2 Astra 和 WorkBuddy 模型，支持思考档位。">
   <link rel="canonical" href="https://zzayoung.github.io/local-ai-model-gateway/">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
@@ -18,7 +18,7 @@
     "@type": "SoftwareApplication",
     "name": "Local AI Model Gateway",
     "url": "https://zzayoung.github.io/local-ai-model-gateway/",
-    "description": "Windows 本地模型网关和模型管理页，支持 Claude Code、DeepSeek Harness、WorkBuddy、OpenAI 官方 API 与 WorkBuddy 模型。",
+    "description": "Windows 本地模型网关和模型管理页，为 Claude Code、DeepSeek Harness 和 WorkBuddy 提供 GPT-6.2 Sol、GPT-6.2 Astra 和 WorkBuddy 模型。",
     "operatingSystem": "Windows 10, Windows 11",
     "applicationCategory": "DeveloperApplication",
     "softwareRequirements": "Node.js 24.5 or later",
@@ -67,10 +67,11 @@
       <table>
         <thead><tr><th scope="col">提供方</th><th scope="col">初始模型</th></tr></thead>
         <tbody>
-          <tr><th scope="row">OpenAI 官方 API</th><td>GPT-6 Luna、GPT-6.1 Terra、GPT-6.1 Sol、GPT-6 Astra</td></tr>
+          <tr><th scope="row">OpenAI 官方 API</th><td>GPT-6 Luna、GPT-6.2 Astra、GPT-6.2 Sol、GPT-6 Astra</td></tr>
           <tr><th scope="row">WorkBuddy</th><td>Hy4、Hy3、DeepSeek V4.1 Flash、GLM-5.3 Flash</td></tr>
         </tbody>
       </table>
+      <p>GPT-6.2 Sol 和 GPT-6.2 Astra 提供 <code>low</code>、<code>medium</code>、<code>high</code>、<code>xhigh</code>、<code>max</code> 五档思考，默认 <code>medium</code>。</p>
       <p>Claude Code 使用 Anthropic Messages 兼容接口，DeepSeek Harness 和 WorkBuddy 使用 OpenAI 兼容接口。三端都连接到 <code>127.0.0.1:8791</code>。模型管理页可检查 OpenAI 新模型，勾选后同步，并一键重启客户端。</p>
     </section>
     <section>

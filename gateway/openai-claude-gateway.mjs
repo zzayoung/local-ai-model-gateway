@@ -12,7 +12,21 @@ const directory = fileURLToPath(new URL('.', import.meta.url));
 let models = JSON.parse(readFileSync(new URL('models.json', import.meta.url)));
 const token = readFileSync(new URL('gateway-token', import.meta.url), 'utf8').trim();
 if (process.argv.includes('--sync')) {
-  applyCatalog(models, directory, token);
+  const catalogPath = process.argv[process.argv.indexOf('--sync') + 1];
+  const replacements = new Map();
+  if (catalogPath) {
+    const bundled = JSON.parse(readFileSync(catalogPath, 'utf8'));
+    for (const [legacy, next] of [['gpt-6.1-sol', 'gpt-6.2-sol'], ['gpt-6.1-terra', 'gpt-6.2-astra']]) {
+      if (!models.some(model => model.provider === 'openai' && model.id === legacy)) continue;
+      const replacement = bundled.find(model => model.provider === 'openai' && model.id === next);
+      if (!replacement) throw new Error('Missing bundled replacement for ' + legacy);
+      replacements.set(legacy, next);
+      const alreadyEnabled = models.some(model => model.id === next);
+      models = models.flatMap(model => model.provider === 'openai' && model.id === legacy ?
+        (alreadyEnabled ? [] : [replacement]) : [model]);
+    }
+  }
+  applyCatalog(models, directory, token, replacements);
   process.exit(0);
 }
 const bridgeToken = process.env.WORKBUDDY_LOCAL_TOKEN;
