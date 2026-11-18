@@ -7,9 +7,10 @@ const slider = ['low', 'medium', 'high', 'xhigh', 'max'];
 export const endpoint = 'http://127.0.0.1:8791';
 const workBuddyChat = endpoint + '/workbuddy/v1/chat/completions';
 const harnessHome = process.env.DSH_HOME;
+const harnessProviders = {openai: 'OpenAI 官方', workbuddy: 'WorkBuddy', 'gemini-gateway': 'Google AI Studio（本地网关）'};
 
 export function claudeOptions(catalog) {
-  return catalog.flatMap(model => {
+  return catalog.filter(model => model.provider !== 'gemini').flatMap(model => {
     const label = model.name + (model.provider === 'workbuddy' ? ' (WorkBuddy)' : '');
     const useSlider = slider.every(effort => model.efforts.includes(effort)) && !model.efforts.includes('minimal');
     const rows = [{model, id: model.id, label,
@@ -29,8 +30,9 @@ export function applyCatalog(catalog, gateway, token, replacements = new Map()) 
   const desktop = join(harnessHome, 'profiles', 'desktop', 'cordis.patch.yml');
   const current = readFileSync(desktop, 'utf8');
   const providers = {};
-  for (const vendor of ['workbuddy', 'openai']) {
-    const entries = catalog.filter(model => model.provider === vendor);
+  for (const [vendor, displayName] of Object.entries(harnessProviders)) {
+    const provider = vendor === 'gemini-gateway' ? 'gemini' : vendor;
+    const entries = catalog.filter(model => model.provider === provider);
     if (!entries.length) { providers[vendor] = ''; continue; }
     const rows = entries.flatMap(model => [
       `          - id: ${model.id}`,
@@ -44,7 +46,7 @@ export function applyCatalog(catalog, gateway, token, replacements = new Map()) 
     ]);
     providers[vendor] = [
       '      ' + vendor + ':',
-      '        displayName: ' + (vendor === 'openai' ? 'OpenAI 官方' : 'WorkBuddy'),
+      '        displayName: ' + displayName,
       '        apiKeyEnv: WORKBUDDY_BRIDGE_KEY',
       '        api: ' + (vendor === 'openai' ? 'openai-responses' : 'openai-completions'),
       '        baseURL: ' + endpoint + '/v1',
@@ -58,7 +60,7 @@ export function applyCatalog(catalog, gateway, token, replacements = new Map()) 
     ].join('\n');
   }
   let harness = current.replace(/\r\n/g, '\n');
-  for (const vendor of ['openai', 'workbuddy']) {
+  for (const vendor of Object.keys(harnessProviders)) {
     const block = new RegExp(`^      ${vendor}:\\n(?:^ {8,}[^\\n]*\\n)*`, 'm');
     if (block.test(harness)) {
       harness = harness.replace(block, () => providers[vendor]);
@@ -89,7 +91,7 @@ export function applyCatalog(catalog, gateway, token, replacements = new Map()) 
   const entries = original.filter(entry => entry.url !== workBuddyChat && !ids.has(entry.id));
   entries.push(...catalog.map(model => ({
     id: model.id,
-    name: `${model.name} (${model.provider === 'openai' ? 'OpenAI' : 'WorkBuddy'})`,
+    name: model.provider === 'gemini' ? model.name : `${model.name} (${model.provider === 'openai' ? 'OpenAI' : 'WorkBuddy'})`,
     vendor: 'Custom',
     url: workBuddyChat,
     apiKey: token,
@@ -114,7 +116,7 @@ export function applyCatalog(catalog, gateway, token, replacements = new Map()) 
     [local, serialize(Array.isArray(root) ? entries : {...root, models: entries})],
     [join(gateway, 'harness-providers.yml'), [
       '- id: llm-pi-ai', '  name: "@deepseek-ai/dsh-llm-pi-ai"', '  config:', '    providers:',
-      providers.workbuddy + providers.openai,
+      providers.workbuddy + providers.openai + providers['gemini-gateway'],
     ].join('\n')],
     [join(gateway, 'models.json'), serialize(catalog)],
   ];

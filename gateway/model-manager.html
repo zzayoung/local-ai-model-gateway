@@ -78,6 +78,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     <div class="grid">
       <div><h3>OpenAI 官方</h3><div id="openai"></div></div>
       <div><h3>WorkBuddy</h3><div id="workbuddy"></div></div>
+      <div><h3>Google AI Studio</h3><div id="gemini"></div></div>
     </div>
   </section>
   <section class="panel" aria-labelledby="candidate-title">
@@ -149,9 +150,9 @@ function showActive(models) {
   const selected = chatModel.value;
   const chosenEffort = chatEffort.value;
   chatModel.replaceChildren();
-  for (const provider of ['openai', 'workbuddy']) {
+  for (const [provider, label] of Object.entries({openai: 'OpenAI 官方', workbuddy: 'WorkBuddy', gemini: 'Google AI Studio'})) {
     const group = document.createElement('optgroup');
-    group.label = provider === 'openai' ? 'OpenAI 官方' : 'WorkBuddy';
+    group.label = label;
     const providerModels = models.filter(model => model.provider === provider);
     for (const {id, name} of providerModels) group.append(new Option(name, id));
     if (providerModels.length) chatModel.append(group);

@@ -1,14 +1,16 @@
 import { createServer } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createInterface } from 'node:readline';
 import { createGunzip } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import { parseEnv } from 'node:util';
 import { applyCatalog, claudeOptions } from './model-catalog.mjs';
 import { manageModels, openAiFetch } from './model-manager.mjs';
 
 const directory = fileURLToPath(new URL('.', import.meta.url));
+const geminiCredentials = new URL('.env', import.meta.url);
 let models = JSON.parse(readFileSync(new URL('models.json', import.meta.url)));
 const token = readFileSync(new URL('gateway-token', import.meta.url), 'utf8').trim();
 if (process.argv.includes('--sync')) {
@@ -25,6 +27,8 @@ if (process.argv.includes('--sync')) {
       models = models.flatMap(model => model.provider === 'openai' && model.id === legacy ?
         (alreadyEnabled ? [] : [replacement]) : [model]);
     }
+    const installed = new Set(models.map(model => model.id));
+    models.push(...bundled.filter(model => model.provider === 'gemini' && !installed.has(model.id)));
   }
   applyCatalog(models, directory, token, replacements);
   process.exit(0);
@@ -409,6 +413,25 @@ async function complete(req, res, path, body, plainChat = false) {
       if (!res.writableEnded) abort.abort();
     });
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(600000)]);
+    if (model.provider === 'gemini') {
+      const variable = model.account === 'free' ? 'GEMINI_API_KEY' : 'GEMINI_PAID_API_KEY';
+      const local = existsSync(geminiCredentials) ? parseEnv(readFileSync(geminiCredentials, 'utf8')) : {};
+      const key = local[variable]?.trim() || process.env[variable]?.trim();
+      if (!key) return fail(503, 'authentication_error', `请在网关目录的 .env 中设置 ${variable}。`);
+      const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+        method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + key},
+        body: JSON.stringify({...body, model: model.upstream, reasoning_effort: effort, store: undefined}),
+        signal,
+      });
+      if (!upstream.ok) {
+        const {error} = await upstream.json().catch(() => ({}));
+        const message = error?.message?.replaceAll(key, '[redacted]') ?? `Google AI Studio HTTP ${upstream.status}`;
+        return fail(upstream.status, 'api_error', message);
+      }
+      res.writeHead(upstream.status, {'Content-Type': upstream.headers.get('content-type') ?? 'application/json',
+        'Cache-Control': 'no-cache'});
+      return await pipeline(Readable.fromWeb(upstream.body), res);
+    }
     const payload = native ? {
       ...body, store: false,
       ...(effort && !configurationEffort ? {reasoning: {...body.reasoning, effort}} : {}),

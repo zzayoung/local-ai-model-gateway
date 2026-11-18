@@ -126,5 +126,75 @@
       "max"
     ],
     "defaultEffort": "medium"
+  },
+  {
+    "id": "gemini-4-hydrogen-paid",
+    "name": "Gemini 4 Hydrogen（付费）",
+    "provider": "gemini",
+    "upstream": "gemini-4-hydrogen",
+    "account": "paid",
+    "context": 1048576,
+    "output": 65536,
+    "image": true,
+    "tools": true,
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "defaultEffort": "high"
+  },
+  {
+    "id": "gemini-4-hydrogen-free",
+    "name": "Gemini 4 Hydrogen（免费）",
+    "provider": "gemini",
+    "upstream": "gemini-4-hydrogen",
+    "account": "free",
+    "context": 1048576,
+    "output": 65536,
+    "image": true,
+    "tools": true,
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "defaultEffort": "high"
+  },
+  {
+    "id": "gemini-4-argon",
+    "name": "Gemini 4 Argon（付费）",
+    "provider": "gemini",
+    "upstream": "gemini-4-argon",
+    "account": "paid",
+    "context": 1048576,
+    "output": 32768,
+    "image": true,
+    "tools": true,
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "defaultEffort": "high"
+  },
+  {
+    "id": "gemini-4-carbon",
+    "name": "Gemini 4 Carbon（付费）",
+    "provider": "gemini",
+    "upstream": "gemini-4-carbon",
+    "account": "paid",
+    "context": 1048576,
+    "output": 32768,
+    "image": true,
+    "tools": true,
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "defaultEffort": "high"
   }
 ]
