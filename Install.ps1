@@ -58,7 +58,7 @@ foreach ($file in @($harnessProfile, $workBuddyModels, $catalog)) {
         Copy-Item -LiteralPath $file -Destination $destination
     }
 }
-Get-ChildItem -LiteralPath $source | Where-Object Name -ne 'models.json' |
+Get-ChildItem -LiteralPath $source | Where-Object { $_.Name -notin @('models.json', 'media-output') } |
     Copy-Item -Destination $gateway -Recurse -Force
 Get-ChildItem -LiteralPath $source -Filter '*.ps1' -File | ForEach-Object {
     Unblock-File -LiteralPath (Join-Path $gateway $_.Name)

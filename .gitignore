@@ -14,12 +14,17 @@ bridge-runtime-path
 .credentials.yaml
 .credentials.yml
 .claude/
+.gemini/
 .workbuddy/
 credentials/
 workbuddy-runtime/
 deployment.json
 claude-settings.json
 harness-providers.yml
+cordis.patch.yml
+mcp.json
+mcp_config.json
+*.before-gateway-media-*
 Migration backups/
 
 # Logs, local build outputs and dependencies
@@ -28,3 +33,4 @@ Migration backups/
 *.sync
 *.zip
 node_modules/
+media-output/

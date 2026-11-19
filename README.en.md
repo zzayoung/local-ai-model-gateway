@@ -16,6 +16,8 @@ The model manager's image and audio panel supports GPT Image 2.6 Flare and Sunbu
 
 Call `GET /v1/media/models` with the gateway token to list generation models. Send `model` and `prompt` to `POST /v1/images/generations` for a Base64 image. Send `model` and `input` to `POST /v1/audio/speech` for WAV speech or `POST /v1/audio/music` for MP3 music.
 
+WorkBuddy, DeepSeek Harness, and Antigravity can call the same [media tools](#media-tools-for-desktop-clients) from chat.
+
 ## Install on Windows
 
 1. Install Node.js 24.5 or later and the clients you plan to use. Close the clients before installing. The gateway uses `127.0.0.1:8791`.
@@ -33,6 +35,20 @@ Call `GET /v1/media/models` with the gateway token to list generation models. Se
 Claude Code connects to the gateway's Anthropic Messages-compatible endpoint. DeepSeek Harness and WorkBuddy use local OpenAI-compatible endpoints. The direct chat entry uses the system prompt supplied in the browser and calls the WorkBuddy service through the adapter without starting the desktop client. Upstream service rules and usage charges still apply.
 
 The WorkBuddy adapter comes from [workbuddy-to-dsh](https://github.com/Ianzhyh/workbuddy-to-dsh). See its [MIT license](gateway/bridge/LICENSE) and [attribution](gateway/bridge/NOTICE.md).
+
+## Media tools for desktop clients
+
+Install from the repository's `main` branch, or copy [media-mcp.mjs](gateway/media-mcp.mjs) into the installed `Model Gateway` directory if your gateway already supports the image and audio routes. Confirm that `http://127.0.0.1:8791/health` responds. The tools use the existing gateway and the credentials configured on the target computer.
+
+Add a local stdio server named `gateway_media` with the target computer's absolute path to `node.exe` as its command and the absolute path to `media-mcp.mjs` as its sole argument. Use `(Get-Command node.exe).Source` in PowerShell to find Node.
+
+- **WorkBuddy.** Open Experts, Skills & Connectors, then Connectors and Custom Connectors. Add the server under `mcpServers` in `mcp.json` with `type` set to `stdio`. Save and trust the new server. [Tencent's connector setup](https://docs.ardot.tencent.com/ardot-mcp/ide-integration.html#workbuddy)
+- **DeepSeek Harness.** Add the server in MCP Settings or merge it into the desktop profile's `mcp-manager.config.servers` in `cordis.patch.yml`. Use `transport: stdio` and `toolCallTimeoutMs: 330000`. [DeepSeek Harness MCP Manager](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/mcp/mcp-manager)
+- **Antigravity.** In Customizations, open Installed and MCP Servers to find the config file path. Add the server under `mcpServers` and set `timeoutSeconds` to `330`. [Google's MCP setup](https://antigravity.google/docs/mcp)
+
+See the [JSON and YAML examples](README.md#在三个客户端使用媒体工具) for the exact structure. Preserve any other servers in each configuration file.
+
+Reopen the client and start a fresh chat. Try asking, “Call `gateway_media`'s `synthesize_speech` with `gemini-3.8-flash-tts-free` to read ‘Hello’ and return the file path.” The `generate_image` tool defaults to GPT Image 2.6 Flare, and `generate_music` defaults to Lyria 3.5. Each tool lists its available models. Outputs are saved under `Model Gateway\media-output`.
 
 ## Upgrade from an earlier version
 

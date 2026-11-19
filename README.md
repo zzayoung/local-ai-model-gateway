@@ -18,6 +18,8 @@ GPT-6.2 Astra 和 Sol 支持 `low`、`medium`、`high`、`xhigh`、`max`，默�
 
 使用网关 Token 调用 `GET /v1/media/models` 可查看生成模型清单。图像通过 `POST /v1/images/generations` 接收 `model` 和 `prompt`，返回 Base64。语音和音乐分别通过 `POST /v1/audio/speech` 和 `POST /v1/audio/music` 接收 `model` 和 `input`，返回 WAV 和 MP3。
 
+WorkBuddy、DeepSeek Harness 和 Antigravity 也可在聊天里调用同一组[媒体工具](#在三个客户端使用媒体工具)。
+
 | 客户端 | 本地网关接口 | 选择模型 |
 | --- | --- | --- |
 | Claude Code | Anthropic Messages 兼容接口 `/v1/messages` | `/model` |
@@ -70,6 +72,43 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -InstallRo
 
    Hydrogen 免费入口读取 `GEMINI_API_KEY`。Hydrogen 付费入口、Argon 和 Carbon 读取 `GEMINI_PAID_API_KEY`。每个入口只使用自己的项目，免费项目的请求失败时不会转到付费项目。额度和计费取决于 Google AI Studio 项目。保存 `.env` 后下次请求即生效。
 
+## 在三个客户端使用媒体工具
+
+从 GitHub 克隆或下载本仓库的 `main` 分支后运行 `Install.ps1`，安装器会把 `media-mcp.mjs` 复制到 `<InstallRoot>\Model Gateway`。如果已安装含图像和音频接口的网关，可以只把 [media-mcp.mjs](gateway/media-mcp.mjs) 复制到运行中的网关目录。媒体工具使用现有网关和目标机配置的密钥。请先确认 `http://127.0.0.1:8791/health` 可访问。
+
+在需要使用的客户端添加名为 `gateway_media` 的本地 stdio 服务。把示例中的 Node 和脚本路径替换为目标机的完整路径。`(Get-Command node.exe).Source` 可查看 Node 路径。配置合并到现有文件中，保留其他服务。
+
+- **WorkBuddy**　在「专家·技能·连接器 → 连接器 → 自定义连接器」添加 MCP。保存后对 `gateway_media` 确认「信任」。[腾讯配置说明](https://docs.ardot.tencent.com/ardot-mcp/ide-integration.html#workbuddy)
+- **Antigravity**　在 `Customizations → Installed → MCP Servers` 中复制配置文件路径，编辑该文件。已验证的全局路径为 `%USERPROFILE%\.gemini\config\mcp_config.json`。可在 `gateway_media` 内设置 `"timeoutSeconds": 330`。[Google MCP 配置说明](https://antigravity.google/docs/mcp)
+
+两个客户端均可在 `mcpServers` 下添加以下条目。WorkBuddy 在该条目内再写入 `"type": "stdio"`。
+
+```json
+{
+  "mcpServers": {
+    "gateway_media": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": ["E:\\AI-Tools\\Model Gateway\\media-mcp.mjs"]
+    }
+  }
+}
+```
+
+**DeepSeek Harness**　在安装器创建的 `<InstallRoot>\DeepSeek Harness\home\profiles\desktop\cordis.patch.yml` 的顶层列表中加入以下配置。已有 `mcp-manager` 时，将 `gateway_media` 合并到它的 `config.servers` 中。也可在设置中添加同名 stdio 服务。[DeepSeek Harness MCP Manager 配置说明](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/mcp/mcp-manager)
+
+```yaml
+- id: mcp-manager
+  config:
+    servers:
+      gateway_media:
+        transport: stdio
+        command: 'C:\Program Files\nodejs\node.exe'
+        args: ['E:\AI-Tools\Model Gateway\media-mcp.mjs']
+        toolCallTimeoutMs: 330000
+```
+
+重开配置过的客户端并开启新对话。试着发送「调用 `gateway_media` 的 `synthesize_speech`，用 `gemini-3.8-flash-tts-free` 朗读『你好』，把文件路径发给我」。`generate_image` 默认使用 GPT Image 2.6 Flare，`generate_music` 默认使用 Lyria 3.5。三种工具都可在对话中指定同类的其他可选模型。生成结果保存在目标机的 `Model Gateway\media-output` 目录。
+
 ## 验证与日常使用
 
 1. 打开桌面上的 **Model Manager - Local Gateway**。确认管理页显示 12 个初始入口及思考档位。浏览器也可访问 `http://127.0.0.1:8791/health` 查看网关状态。
@@ -96,7 +135,7 @@ Claude Code 连接网关提供的 Messages 兼容接口。网关再调用 OpenAI
 
 ### 在另一台 Windows 电脑上怎么用 Codex 部署？
 
-下载 Release 中的 ZIP 并交给 Codex，请它按本页说明执行 `Install.ps1`，再验证 `/health`、模型选择器和登录自启。按需要在每台电脑配置 WorkBuddy 授权、OpenAI 和 Google AI Studio 密钥。
+下载 Release 中的 ZIP，或拉取 `main` 以部署最新的共享媒体工具。请 Codex 按本页说明执行 `Install.ps1`，再验证 `/health`、模型选择器和登录自启。按需要在每台电脑配置 WorkBuddy 授权、OpenAI 和 Google AI Studio 密钥，并按[媒体工具步骤](#在三个客户端使用媒体工具)添加所需客户端。
 
 ## 第三方组件
 
