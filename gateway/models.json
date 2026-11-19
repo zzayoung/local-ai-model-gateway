@@ -57,6 +57,32 @@
     "defaultEffort": "high"
   },
   {
+    "id": "hy4flash-free",
+    "name": "Hy4 Flash（限免）",
+    "provider": "workbuddy",
+    "context": 300000,
+    "output": 64000,
+    "image": true,
+    "tools": true,
+    "efforts": [
+      "high"
+    ],
+    "defaultEffort": "high"
+  },
+  {
+    "id": "hy4flash",
+    "name": "Hy4 Flash（常规）",
+    "provider": "workbuddy",
+    "context": 300000,
+    "output": 64000,
+    "image": true,
+    "tools": true,
+    "efforts": [
+      "high"
+    ],
+    "defaultEffort": "high"
+  },
+  {
     "id": "gpt-6-luna",
     "name": "GPT-6 Luna",
     "provider": "openai",

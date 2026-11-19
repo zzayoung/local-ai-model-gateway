@@ -28,7 +28,10 @@ if (process.argv.includes('--sync')) {
         (alreadyEnabled ? [] : [replacement]) : [model]);
     }
     const installed = new Set(models.map(model => model.id));
-    models.push(...bundled.filter(model => model.provider === 'gemini' && !installed.has(model.id)));
+    const workBuddyAdditions = new Set(['hy4flash-free', 'hy4flash']);
+    models.push(...bundled.filter(model => !installed.has(model.id) && (
+      model.provider === 'gemini' || (model.provider === 'workbuddy' && workBuddyAdditions.has(model.id))
+    )));
   }
   applyCatalog(models, directory, token, replacements);
   process.exit(0);

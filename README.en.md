@@ -7,7 +7,7 @@ Local AI Model Gateway connects **Claude Code, DeepSeek Harness, and WorkBuddy**
 | Provider | Models in the initial catalog |
 | --- | --- |
 | OpenAI | GPT-6 Luna, GPT-6.2 Astra, GPT-6.2 Sol, GPT-6 Astra |
-| WorkBuddy | Hy4, Hy3, DeepSeek V4.1 Flash, GLM-5.3 Flash |
+| WorkBuddy | Hy4 Flash (limited-time free), Hy4 Flash (standard), Hy4, Hy3, DeepSeek V4.1 Flash, GLM-5.3 Flash |
 | Google AI Studio | Gemini 4 Hydrogen (free and paid projects), Gemini 4 Argon and Carbon (paid project) |
 
 GPT-6.2 Astra and Sol support `low`, `medium`, `high`, `xhigh`, and `max`, with `medium` as the default. See [models.json](gateway/models.json) for each model's settings. Availability and charges depend on the upstream service and your account.
@@ -32,4 +32,4 @@ The WorkBuddy adapter comes from [workbuddy-to-dsh](https://github.com/Ianzhyh/w
 
 ## Upgrade from an earlier version
 
-Stop the clients and gateway, then run the new `Install.ps1` with your existing installation root. The installer backs up the catalog, adds the Gemini entries, and keeps models you added. It also migrates the GPT-6.1 entries in v0.1.0 to GPT-6.2 Sol and Astra.
+Stop the clients and gateway, then run the new `Install.ps1` with your existing installation root. The installer backs up the catalog, adds missing Gemini and Hy4 Flash entries, and keeps models you added. It also migrates the GPT-6.1 entries in v0.1.0 to GPT-6.2 Sol and Astra.
