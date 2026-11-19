@@ -33,23 +33,25 @@ WorkBuddy、DeepSeek Harness 和 Antigravity 也可在聊天里调用同一组[�
 - 从 [GitHub Releases](https://github.com/zzayoung/local-ai-model-gateway/releases/latest) 下载并解压 Windows 部署包，也可以克隆本仓库。
 - 使用 Windows 10 或 11，以及 PATH 上的 Node.js 24.5 或更高版本。
 - 安装需要使用的三个客户端。默认从当前 Windows 用户的 WorkBuddy 安装位置及常见的 Claude Code、DeepSeek Harness 位置查找，也可显式指定三个 EXE 的完整路径。Claude Code 使用网关入口时由网关提供模型，随包生成的令牌用于本机连接。
-- 关闭三个客户端。如果本机已有网关，先停止原网关并确认本地端口 8791 空闲。
+- 关闭要使用的客户端，包括 Antigravity。如果本机已有网关，先停止原网关并确认本地端口 8791 空闲。
 
 ## 安装
 
-在解压后的目录中打开 PowerShell：
+解压后双击 **Install.cmd**。有 E 盘时默认装到 `E:\AI-Tools`，没有 E 盘时装到 `%LOCALAPPDATA%\AI-Tools`。
+
+也可以在解压后的目录中用 PowerShell 运行安装器。
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1
 ```
 
-默认放在 `E:\AI-Tools`。没有 E 盘时使用其他本地目录，应用在非默认位置时追加对应参数：
+如需指定安装目录或客户端位置，可追加对应参数。
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -InstallRoot 'D:\AI-Tools' -HarnessExe 'D:\Apps\DeepSeek Harness\DeepSeek Harness.exe' -ClaudeExe 'D:\Apps\Claude\claude.exe' -WorkBuddyExe 'D:\Apps\WorkBuddy\WorkBuddy.exe'
 ```
 
-安装会备份现有的 WorkBuddy 模型配置和目标目录中的 Harness 桌面配置，备份位于 `<InstallRoot>\Migration backups`。Claude Code 配置与工作区、DeepSeek Harness 的新配置目录都在安装根目录下。Windows 任务 `Local AI Model Gateway` 在当前用户登录时启动网关，桌面生成模型管理页和三个客户端入口。若安装时没有找到 Claude Code 或 Harness，可安装后在网关目录的 `deployment.json` 填入对应的 EXE 路径。
+安装器会备份现有的模型和连接器配置，备份位于 `<InstallRoot>\Migration backups`。Claude Code 配置与工作区、DeepSeek Harness 的新配置目录都在安装根目录下。Windows 任务 `Local AI Model Gateway` 在当前用户登录时启动网关，桌面生成模型管理页、Claude Code、DeepSeek Harness 和 WorkBuddy 入口。若安装时未找到某个客户端，可装好后在网关目录的 `deployment.json` 填入对应的 EXE 路径。
 
 从旧版升级时，先关闭客户端和网关，再用原安装目录运行新版 `Install.ps1`。安装器备份网关模型清单，补齐缺少的 Gemini 和 Hy4 Flash 入口，并保留手动添加的模型。v0.1.0 中的 GPT-6.1 Sol 和 Terra 会分别升级为 GPT-6.2 Sol 和 Astra。
 
@@ -74,14 +76,16 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -InstallRo
 
 ## 在三个客户端使用媒体工具
 
-从 GitHub 克隆或下载本仓库的 `main` 分支后运行 `Install.ps1`，安装器会把 `media-mcp.mjs` 复制到 `<InstallRoot>\Model Gateway`。如果已安装含图像和音频接口的网关，可以只把 [media-mcp.mjs](gateway/media-mcp.mjs) 复制到运行中的网关目录。媒体工具使用现有网关和目标机配置的密钥。请先确认 `http://127.0.0.1:8791/health` 可访问。
+Windows 安装器会给 WorkBuddy、DeepSeek Harness 和 Antigravity 添加同名的 `gateway_media` 连接器，并保留其他连接器。三个客户端共用本地网关及你在目标机配置的密钥。重开客户端后，按下列方式开始使用。
 
-在需要使用的客户端添加名为 `gateway_media` 的本地 stdio 服务。把示例中的 Node 和脚本路径替换为目标机的完整路径。`(Get-Command node.exe).Source` 可查看 Node 路径。配置合并到现有文件中，保留其他服务。
+- **WorkBuddy**　在「专家·技能·连接器 → 连接器 → 自定义连接器」找到 `gateway_media`，首次使用时点「信任」。[腾讯配置说明](https://docs.ardot.tencent.com/ardot-mcp/ide-integration.html#workbuddy)
+- **DeepSeek Harness**　用桌面的 **DeepSeek Harness - Local Gateway** 启动，以加载安装器配置的桌面档案。[DeepSeek Harness MCP Manager 配置说明](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/mcp/mcp-manager)
+- **Antigravity**　正常启动，在 `Customizations → Installed → MCP Servers` 下查看工具。[Google MCP 配置说明](https://antigravity.google/docs/mcp)
 
-- **WorkBuddy**　在「专家·技能·连接器 → 连接器 → 自定义连接器」添加 MCP。保存后对 `gateway_media` 确认「信任」。[腾讯配置说明](https://docs.ardot.tencent.com/ardot-mcp/ide-integration.html#workbuddy)
-- **Antigravity**　在 `Customizations → Installed → MCP Servers` 中复制配置文件路径，编辑该文件。已验证的全局路径为 `%USERPROFILE%\.gemini\config\mcp_config.json`。可在 `gateway_media` 内设置 `"timeoutSeconds": 330`。[Google MCP 配置说明](https://antigravity.google/docs/mcp)
+<details>
+<summary>自定义客户端档案的手动配置示例</summary>
 
-两个客户端均可在 `mcpServers` 下添加以下条目。WorkBuddy 在该条目内再写入 `"type": "stdio"`。
+WorkBuddy 的配置在 `%USERPROFILE%\.workbuddy\mcp.json`，Antigravity 的全局配置在 `%USERPROFILE%\.gemini\config\mcp_config.json`。可在 `mcpServers` 下添加示例中的条目，将路径换成目标机的绝对路径。WorkBuddy 在条目内加 `"type": "stdio"`，Antigravity 加 `"timeoutSeconds": 330`。
 
 ```json
 {
@@ -94,7 +98,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -InstallRo
 }
 ```
 
-**DeepSeek Harness**　在安装器创建的 `<InstallRoot>\DeepSeek Harness\home\profiles\desktop\cordis.patch.yml` 的顶层列表中加入以下配置。已有 `mcp-manager` 时，将 `gateway_media` 合并到它的 `config.servers` 中。也可在设置中添加同名 stdio 服务。[DeepSeek Harness MCP Manager 配置说明](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/mcp/mcp-manager)
+**DeepSeek Harness**　在安装器创建的 `<InstallRoot>\DeepSeek Harness\home\profiles\desktop\cordis.patch.yml` 的顶层列表中加入以下配置。已有 `mcp-manager` 时，将 `gateway_media` 合并到它的 `config.servers` 中。也可在设置中添加同名 stdio 服务。
 
 ```yaml
 - id: mcp-manager
@@ -107,7 +111,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -InstallRo
         toolCallTimeoutMs: 330000
 ```
 
-重开配置过的客户端并开启新对话。试着发送「调用 `gateway_media` 的 `synthesize_speech`，用 `gemini-3.8-flash-tts-free` 朗读『你好』，把文件路径发给我」。`generate_image` 默认使用 GPT Image 2.6 Flare，`generate_music` 默认使用 Lyria 3.5。三种工具都可在对话中指定同类的其他可选模型。生成结果保存在目标机的 `Model Gateway\media-output` 目录。
+</details>
+
+开启新对话后，试着发送「调用 `gateway_media` 的 `synthesize_speech`，用 `gemini-3.8-flash-tts-free` 朗读『你好』，把文件路径发给我」。`generate_image` 默认使用 GPT Image 2.6 Flare，`generate_music` 默认使用 Lyria 3.5。三种工具都可在对话中指定同类的其他可选模型。生成结果保存在目标机的 `Model Gateway\media-output` 目录。
 
 ## 验证与日常使用
 
@@ -135,7 +141,7 @@ Claude Code 连接网关提供的 Messages 兼容接口。网关再调用 OpenAI
 
 ### 在另一台 Windows 电脑上怎么用 Codex 部署？
 
-下载 Release 中的 ZIP，或拉取 `main` 以部署最新的共享媒体工具。请 Codex 按本页说明执行 `Install.ps1`，再验证 `/health`、模型选择器和登录自启。按需要在每台电脑配置 WorkBuddy 授权、OpenAI 和 Google AI Studio 密钥，并按[媒体工具步骤](#在三个客户端使用媒体工具)添加所需客户端。
+下载 Release 中的 ZIP，或拉取 `main`。请 Codex 按本页说明执行 `Install.ps1`，再验证 `/health`、模型选择器和登录自启。按需要在每台电脑配置 WorkBuddy 授权、OpenAI 和 Google AI Studio 密钥，并按[媒体工具步骤](#在三个客户端使用媒体工具)验证所需客户端。
 
 ## 第三方组件
 

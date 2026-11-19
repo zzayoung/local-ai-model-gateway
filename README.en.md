@@ -21,7 +21,7 @@ WorkBuddy, DeepSeek Harness, and Antigravity can call the same [media tools](#me
 ## Install on Windows
 
 1. Install Node.js 24.5 or later and the clients you plan to use. Close the clients before installing. The gateway uses `127.0.0.1:8791`.
-2. Extract the [Windows package](https://github.com/zzayoung/local-ai-model-gateway/releases/latest) and run the following in its directory. The installer defaults to `E:\AI-Tools`. Use `-InstallRoot` for another disk and `-HarnessExe`, `-ClaudeExe`, or `-WorkBuddyExe` for custom app paths.
+2. Extract the [Windows package](https://github.com/zzayoung/local-ai-model-gateway/releases/latest) and double-click **Install.cmd**. The installer defaults to `E:\AI-Tools` when drive E exists and `%LOCALAPPDATA%\AI-Tools` otherwise. To customize the setup, run the following command with `-InstallRoot`, `-HarnessExe`, `-ClaudeExe`, or `-WorkBuddyExe` as needed.
 
    ```powershell
    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1
@@ -38,18 +38,16 @@ The WorkBuddy adapter comes from [workbuddy-to-dsh](https://github.com/Ianzhyh/w
 
 ## Media tools for desktop clients
 
-Install from the repository's `main` branch, or copy [media-mcp.mjs](gateway/media-mcp.mjs) into the installed `Model Gateway` directory if your gateway already supports the image and audio routes. Confirm that `http://127.0.0.1:8791/health` responds. The tools use the existing gateway and the credentials configured on the target computer.
+The Windows installer registers `gateway_media` in WorkBuddy, DeepSeek Harness, and Antigravity and preserves other connectors. The three clients share the local gateway and the credentials configured on the target computer.
 
-Add a local stdio server named `gateway_media` with the target computer's absolute path to `node.exe` as its command and the absolute path to `media-mcp.mjs` as its sole argument. Use `(Get-Command node.exe).Source` in PowerShell to find Node.
+- **WorkBuddy.** In Experts, Skills & Connectors, open Connectors and Custom Connectors. Trust `gateway_media` the first time you use it. [Tencent's connector setup](https://docs.ardot.tencent.com/ardot-mcp/ide-integration.html#workbuddy)
+- **DeepSeek Harness.** Open **DeepSeek Harness - Local Gateway** from the desktop to load the configured profile. [DeepSeek Harness MCP Manager](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/mcp/mcp-manager)
+- **Antigravity.** Launch as usual and check Customizations, Installed, and MCP Servers for the tools. [Google's MCP setup](https://antigravity.google/docs/mcp)
 
-- **WorkBuddy.** Open Experts, Skills & Connectors, then Connectors and Custom Connectors. Add the server under `mcpServers` in `mcp.json` with `type` set to `stdio`. Save and trust the new server. [Tencent's connector setup](https://docs.ardot.tencent.com/ardot-mcp/ide-integration.html#workbuddy)
-- **DeepSeek Harness.** Add the server in MCP Settings or merge it into the desktop profile's `mcp-manager.config.servers` in `cordis.patch.yml`. Use `transport: stdio` and `toolCallTimeoutMs: 330000`. [DeepSeek Harness MCP Manager](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/mcp/mcp-manager)
-- **Antigravity.** In Customizations, open Installed and MCP Servers to find the config file path. Add the server under `mcpServers` and set `timeoutSeconds` to `330`. [Google's MCP setup](https://antigravity.google/docs/mcp)
-
-See the [JSON and YAML examples](README.md#在三个客户端使用媒体工具) for the exact structure. Preserve any other servers in each configuration file.
+See the [JSON and YAML examples](README.md#在三个客户端使用媒体工具) if you use a custom client profile.
 
 Reopen the client and start a fresh chat. Try asking, “Call `gateway_media`'s `synthesize_speech` with `gemini-3.8-flash-tts-free` to read ‘Hello’ and return the file path.” The `generate_image` tool defaults to GPT Image 2.6 Flare, and `generate_music` defaults to Lyria 3.5. Each tool lists its available models. Outputs are saved under `Model Gateway\media-output`.
 
 ## Upgrade from an earlier version
 
-Stop the clients and gateway, then run the new `Install.ps1` with your existing installation root. The installer backs up the catalog, adds missing Gemini and Hy4 Flash entries, and keeps models you added. It also migrates the GPT-6.1 entries in v0.1.0 to GPT-6.2 Sol and Astra.
+Stop the clients and gateway, then run the new `Install.ps1` with your existing installation root. The installer backs up the catalog and client configurations to `<InstallRoot>\Migration backups`, adds missing Gemini and Hy4 Flash entries, and keeps models you added. It also migrates the GPT-6.1 entries in v0.1.0 to GPT-6.2 Sol and Astra.

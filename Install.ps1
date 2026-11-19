@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
-    [string]$InstallRoot = 'E:\AI-Tools',
+    [string]$InstallRoot,
     [string]$HarnessExe,
     [string]$ClaudeExe,
-    [string]$WorkBuddyExe = (Join-Path $env:LOCALAPPDATA 'Programs\WorkBuddy\WorkBuddy.exe'),
+    [string]$WorkBuddyExe,
     [switch]$SkipStart
 )
 $ErrorActionPreference = 'Stop'
@@ -12,6 +12,9 @@ $version = & $node --version
 if ($version -notmatch '^v(\d+)\.(\d+)' -or [int]$Matches[1] -lt 24 -or
     ([int]$Matches[1] -eq 24 -and [int]$Matches[2] -lt 5)) {
     throw 'Node.js 24.5 or later is required.'
+}
+if (!$InstallRoot) {
+    $InstallRoot = if (Test-Path -LiteralPath 'E:\') { 'E:\AI-Tools' } else { Join-Path $env:LOCALAPPDATA 'AI-Tools' }
 }
 $InstallRoot = [IO.Path]::GetFullPath($InstallRoot)
 $gateway = Join-Path $InstallRoot 'Model Gateway'
@@ -37,6 +40,10 @@ if (!$ClaudeExe) {
     $managed = Join-Path $claudeHome 'runtime\node_modules\@anthropic-ai\claude-code-win32-x64\claude.exe'
     if (Test-Path -LiteralPath $managed -PathType Leaf) { $ClaudeExe = $managed }
     else { $ClaudeExe = (Get-Command claude.exe -ErrorAction SilentlyContinue | Select-Object -First 1).Source }
+}
+if (!$WorkBuddyExe) {
+    $candidate = Join-Path $env:LOCALAPPDATA 'Programs\WorkBuddy\WorkBuddy.exe'
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) { $WorkBuddyExe = $candidate }
 }
 foreach ($program in @($HarnessExe, $ClaudeExe, $WorkBuddyExe)) {
     if ($program -and !(Test-Path -LiteralPath $program -PathType Leaf)) { throw "Executable not found: $program" }
@@ -105,6 +112,8 @@ if (!(Test-Path -LiteralPath $claudeSettings)) {
 $env:DSH_HOME = $harnessHome
 & $node (Join-Path $gateway 'openai-claude-gateway.mjs') --sync (Join-Path $source 'models.json')
 if ($LASTEXITCODE -ne 0) { throw 'Model catalog sync failed.' }
+& $node (Join-Path $gateway 'install-media-clients.mjs') $env:USERPROFILE $harnessProfile $backup
+if ($LASTEXITCODE -ne 0) { throw 'Media connector setup failed. See the configuration path above.' }
 if (!$SkipStart) {
     & (Join-Path $gateway 'Start-AiModelGateway.ps1')
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
@@ -127,5 +136,8 @@ if (!$SkipStart) {
     }
 }
 Write-Output ('Installed at ' + $gateway)
+Write-Output 'gateway_media is configured for WorkBuddy, DeepSeek Harness and Antigravity.'
+Write-Output 'In WorkBuddy, trust gateway_media in Custom Connectors the first time.'
 if (!$ClaudeExe) { Write-Output 'Set claudeExe in deployment.json after installing Claude Code.' }
 if (!$HarnessExe) { Write-Output 'Set harnessExe in deployment.json after installing DeepSeek Harness.' }
+if (!$WorkBuddyExe) { Write-Output 'Set workBuddyExe in deployment.json after installing WorkBuddy.' }
