@@ -12,6 +12,10 @@ Local AI Model Gateway connects **Claude Code, DeepSeek Harness, and WorkBuddy**
 
 GPT-6.2 Astra and Sol support `low`, `medium`, `high`, `xhigh`, and `max`, with `medium` as the default. See [models.json](gateway/models.json) for each model's settings. Availability and charges depend on the upstream service and your account.
 
+The model manager's image and audio panel supports GPT Image 2.6 Flare and Sunburst, Nano Banana 2.1, Gemini 3.8 Flash and Flash-Lite TTS, and Lyria 3.5. Both TTS models can use either Google project. Nano Banana and Lyria use the paid project. You can preview and download outputs in the browser.
+
+Call `GET /v1/media/models` with the gateway token to list generation models. Send `model` and `prompt` to `POST /v1/images/generations` for a Base64 image. Send `model` and `input` to `POST /v1/audio/speech` for WAV speech or `POST /v1/audio/music` for MP3 music.
+
 ## Install on Windows
 
 1. Install Node.js 24.5 or later and the clients you plan to use. Close the clients before installing. The gateway uses `127.0.0.1:8791`.

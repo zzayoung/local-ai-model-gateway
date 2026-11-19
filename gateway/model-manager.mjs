@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { efforts } from './model-catalog.mjs';
+import { mediaModels } from './media-gateway.mjs';
 
 const credentials = join(process.env.DSH_HOME, '.credentials.yaml');
 const localKey = new URL('openai-key', import.meta.url);
@@ -61,7 +62,7 @@ async function inspect(id) {
   return model;
 }
 
-export async function manageModels(req, res, path, managerToken, models, apply, chat) {
+export async function manageModels(req, res, path, managerToken, models, apply, chat, generateMedia) {
   const reply = (status, value) => {
     res.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'});
     res.end(JSON.stringify(value));
@@ -73,14 +74,14 @@ export async function manageModels(req, res, path, managerToken, models, apply, 
   if (req.method === 'GET' && path === '/manage') {
     res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
       'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"});
+      'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src blob:; media-src blob:; base-uri 'none'; frame-ancestors 'none'"});
     return res.end(page);
   }
   if (req.headers.authorization !== 'Bearer ' + managerToken) {
     return reply(401, {error: '请重新双击「模型管理.cmd」打开。'});
   }
   try {
-    if (req.method === 'GET' && path === '/manage/api/status') return reply(200, {models});
+    if (req.method === 'GET' && path === '/manage/api/status') return reply(200, {models, mediaModels});
     if (req.method === 'POST' && path === '/manage/api/restart') {
       if (restarting) return reply(409, {error: '正在重启客户端，请稍候。'});
       restarting = true;
@@ -99,7 +100,7 @@ export async function manageModels(req, res, path, managerToken, models, apply, 
       if (!response.ok) throw new Error('OpenAI 官方模型清单查询失败（HTTP ' + response.status + '）。');
       const {data} = await response.json();
       if (!Array.isArray(data)) throw new Error('OpenAI 官方返回的模型清单格式异常。');
-      const active = new Set(models.map(model => model.id));
+      const active = new Set([...models, ...mediaModels].map(model => model.id));
       available = new Map(data.filter(row => typeof row?.id === 'string' &&
         /^[a-z0-9][a-z0-9.-]+$/.test(row.id) && !active.has(row.id))
         .map(({id, shutdown_date}) => [id, {id, shutdown: shutdown_date}]));
@@ -112,7 +113,7 @@ export async function manageModels(req, res, path, managerToken, models, apply, 
       const model = await inspect(id);
       return reply(200, {model});
     }
-    if (req.method === 'POST' && ['/manage/api/apply', '/manage/api/chat'].includes(path)) {
+    if (req.method === 'POST' && ['/manage/api/apply', '/manage/api/chat', '/manage/api/media'].includes(path)) {
       let selection;
       try {
         const chunks = [];
@@ -121,6 +122,7 @@ export async function manageModels(req, res, path, managerToken, models, apply, 
       } catch {
         return reply(400, {error: '无法读取请求内容。'});
       }
+      if (path === '/manage/api/media') return generateMedia(res, path, selection);
       if (path === '/manage/api/chat') {
         const {model, effort, system = '', messages} = selection ?? {};
         if (typeof model !== 'string' || (effort !== undefined && typeof effort !== 'string') ||

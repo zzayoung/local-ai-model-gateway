@@ -45,6 +45,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .turn.user { background: #f0f6f4; }
 .turn p { color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
 #chat-status { min-height: 1.55em; margin: 0; }
+#media-form { display: grid; gap: 12px; margin-top: 16px; }
+#media-form label { display: grid; gap: 5px; font-weight: 650; }
+#media-form select, #media-form textarea {
+  width: 100%; padding: 9px 11px; border: 1px solid #c9d8d3; border-radius: 8px;
+  background: white; color: inherit; font: inherit; font-weight: 400;
+}
+#media-form textarea { resize: vertical; }
+#media-result { margin-top: 16px; }
+#media-result img { display: block; max-width: 100%; max-height: 60vh; border-radius: 8px; }
+#media-result audio { display: block; width: min(100%, 500px); }
+#media-result a { display: inline-block; margin-top: 10px; color: #135b48; font-weight: 650; }
 @media (max-width: 580px) { main { margin: 24px auto; } .grid { grid-template-columns: 1fr; gap: 10px; } .panel { padding: 16px; } }
 </style>
 </head>
@@ -52,9 +63,24 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 <main>
   <div class="heading">
     <h1>模型管理</h1>
-    <button class="primary" type="button" id="open-chat" aria-controls="chat" aria-expanded="false">纯对话</button>
+    <div class="heading">
+      <button type="button" id="open-media" aria-controls="media" aria-expanded="false">图像与声音</button>
+      <button class="primary" type="button" id="open-chat" aria-controls="chat" aria-expanded="false">纯对话</button>
+    </div>
   </div>
   <p>Claude Code、DeepSeek Harness 和 WorkBuddy 共用这份清单。</p>
+  <section class="panel" id="media" aria-labelledby="media-title" hidden>
+    <h2 id="media-title">图像与声音</h2>
+    <form id="media-form">
+      <label>模型<select id="media-model" required disabled></select></label>
+      <label>提示词或朗读文本<textarea id="media-input" rows="3" maxlength="32000" required></textarea></label>
+      <div class="actions">
+        <p class="detail" id="media-status" role="status"></p>
+        <button class="primary" id="media-send" disabled>生成</button>
+      </div>
+    </form>
+    <div id="media-result" hidden></div>
+  </section>
   <section class="panel" id="chat" aria-labelledby="chat-title" hidden>
     <div class="heading"><h2 id="chat-title">纯对话</h2><button type="button" id="chat-clear" disabled>清空对话</button></div>
     <p class="detail">按所选模型使用原有额度。对话记录仅保留在当前页面。</p>
@@ -375,11 +401,69 @@ restart.addEventListener('click', async () => {
   }
 });
 
-api('status').then(({models}) => {
+const mediaPanel = query('media');
+const mediaPicker = query('media-model');
+const mediaSend = query('media-send');
+const mediaStatus = query('media-status');
+const mediaResult = query('media-result');
+let mediaURL;
+
+query('open-media').addEventListener('click', event => {
+  mediaPanel.hidden = !mediaPanel.hidden;
+  event.currentTarget.setAttribute('aria-expanded', String(!mediaPanel.hidden));
+  if (!mediaPanel.hidden) mediaPicker.focus();
+});
+
+query('media-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (mediaSend.disabled) return;
+  mediaSend.disabled = true;
+  mediaStatus.classList.remove('error');
+  mediaStatus.textContent = '正在生成，音乐可能需要几分钟…';
+  const model = mediaPicker.value;
+  try {
+    const {data, mimeType} = await api('media', {model, input: query('media-input').value});
+    const ext = {'image/png': 'png', 'image/jpeg': 'jpg', 'audio/wav': 'wav', 'audio/mpeg': 'mp3'}[mimeType];
+    const file = new Blob([Uint8Array.fromBase64(data)], {type: mimeType});
+    const isImage = mimeType.startsWith('image/');
+    const preview = document.createElement(isImage ? 'img' : 'audio');
+    if (isImage) preview.alt = '生成的图像';
+    else preview.controls = true;
+    if (mediaURL) URL.revokeObjectURL(mediaURL);
+    mediaURL = URL.createObjectURL(file);
+    preview.src = mediaURL;
+    const save = document.createElement('a');
+    save.href = mediaURL;
+    save.download = model + '.' + ext;
+    save.textContent = '下载文件';
+    mediaResult.replaceChildren(preview, save);
+    mediaResult.hidden = false;
+    mediaStatus.textContent = '生成完成。';
+  } catch (error) {
+    mediaStatus.textContent = error.message;
+    mediaStatus.classList.add('error');
+  } finally {
+    mediaSend.disabled = false;
+  }
+});
+
+api('status').then(({models, mediaModels}) => {
   showActive(models);
   showSelection();
+  for (const [route, label] of [['/v1/images/generations', '图像'], ['/v1/audio/speech', '语音朗读'], ['/v1/audio/music', '音乐']]) {
+    const group = document.createElement('optgroup');
+    group.label = label;
+    for (const model of mediaModels.filter(model => model.route === route)) {
+      const account = model.account === 'free' ? 'Google 免费项目' : model.account === 'paid' ? 'Google 付费项目' : 'OpenAI API';
+      group.append(new Option(model.name + ' · ' + account, model.id));
+    }
+    if (group.children.length) mediaPicker.append(group);
+  }
+  mediaPicker.disabled = mediaSend.disabled = !mediaPicker.options.length;
 }).catch(error => {
   message(error.message, true);
+  mediaStatus.textContent = error.message;
+  mediaStatus.classList.add('error');
   chatStatus.textContent = error.message;
   chatStatus.classList.add('error');
   check.disabled = true;

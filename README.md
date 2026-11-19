@@ -14,6 +14,10 @@
 
 GPT-6.2 Astra 和 Sol 支持 `low`、`medium`、`high`、`xhigh`、`max`，默认 `medium`。各模型的档位见 [模型清单](gateway/models.json)。调用能否成功取决于账号权限、余额及上游当时的服务状态。
 
+模型管理页的「图像与声音」支持 GPT Image 2.6 Flare 和 Sunburst、Nano Banana 2.1、Gemini 3.8 Flash 和 Flash-Lite TTS，以及 Lyria 3.5。两种 TTS 都提供 Google 免费项目和付费项目入口，Nano Banana 和 Lyria 使用付费项目。支持在页面预览并下载生成结果。
+
+使用网关 Token 调用 `GET /v1/media/models` 可查看生成模型清单。图像通过 `POST /v1/images/generations` 接收 `model` 和 `prompt`，返回 Base64。语音和音乐分别通过 `POST /v1/audio/speech` 和 `POST /v1/audio/music` 接收 `model` 和 `input`，返回 WAV 和 MP3。
+
 | 客户端 | 本地网关接口 | 选择模型 |
 | --- | --- | --- |
 | Claude Code | Anthropic Messages 兼容接口 `/v1/messages` | `/model` |

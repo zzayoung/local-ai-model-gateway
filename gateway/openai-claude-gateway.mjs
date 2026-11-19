@@ -8,9 +8,16 @@ import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { applyCatalog, claudeOptions } from './model-catalog.mjs';
 import { manageModels, openAiFetch } from './model-manager.mjs';
+import { createMediaHandler, mediaModels, mediaRoutes } from './media-gateway.mjs';
 
 const directory = fileURLToPath(new URL('.', import.meta.url));
 const geminiCredentials = new URL('.env', import.meta.url);
+function getGeminiKey(account) {
+  const variable = account === 'free' ? 'GEMINI_API_KEY' : 'GEMINI_PAID_API_KEY';
+  const local = existsSync(geminiCredentials) ? parseEnv(readFileSync(geminiCredentials, 'utf8')) : {};
+  return local[variable]?.trim() || process.env[variable]?.trim();
+}
+const generateMedia = createMediaHandler(openAiFetch, getGeminiKey);
 let models = JSON.parse(readFileSync(new URL('models.json', import.meta.url)));
 const token = readFileSync(new URL('gateway-token', import.meta.url), 'utf8').trim();
 if (process.argv.includes('--sync')) {
@@ -338,7 +345,7 @@ createServer(async (req, res) => {
   }
   if (path === '/manage' || path.startsWith('/manage/api/')) {
     return manageModels(req, res, path, managerToken, models, updateModels,
-      body => complete(req, res, '/v1/chat/completions', body, true));
+      body => complete(req, res, '/v1/chat/completions', body, true), generateMedia);
   }
   const requestToken = req.headers.authorization?.startsWith('Bearer ') ?
     req.headers.authorization.slice(7) : req.headers['x-api-key'];
@@ -349,13 +356,15 @@ createServer(async (req, res) => {
     req.headers.authorization = 'Bearer ' + bridgeToken;
     return handleWorkBuddyRequest(req, res);
   }
+  if (req.method === 'GET' && path === '/v1/media/models') return json(res, 200, {data: mediaModels});
   if (req.method === 'GET' && ['/v1/models', '/workbuddy/v1/models'].includes(path)) {
     return json(res, 200, {object: 'list', data: models.map(({id, name, provider, efforts}) => ({
       id, object: 'model', type: 'model', display_name: name, owned_by: provider, reasoning_efforts: efforts,
       created_at: '2026-11-16T00:00:00Z',
     })), has_more: false});
   }
-  if (req.method !== 'POST' || (!chat && !native && !['/v1/messages', '/v1/messages/count_tokens'].includes(path))) {
+  const media = mediaRoutes.includes(path);
+  if (req.method !== 'POST' || (!chat && !native && !media && !['/v1/messages', '/v1/messages/count_tokens'].includes(path))) {
     return fail(404, 'not_found_error', 'Unknown gateway route');
   }
   let body;
@@ -368,7 +377,7 @@ createServer(async (req, res) => {
   } catch {
     return fail(400, 'invalid_request_error', 'Expected JSON with a model ID');
   }
-  return complete(req, res, path, body);
+  return media ? generateMedia(res, path, body) : complete(req, res, path, body);
 }).listen(8791, '127.0.0.1');
 
 async function complete(req, res, path, body, plainChat = false) {
@@ -418,8 +427,7 @@ async function complete(req, res, path, body, plainChat = false) {
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(600000)]);
     if (model.provider === 'gemini') {
       const variable = model.account === 'free' ? 'GEMINI_API_KEY' : 'GEMINI_PAID_API_KEY';
-      const local = existsSync(geminiCredentials) ? parseEnv(readFileSync(geminiCredentials, 'utf8')) : {};
-      const key = local[variable]?.trim() || process.env[variable]?.trim();
+      const key = getGeminiKey(model.account);
       if (!key) return fail(503, 'authentication_error', `请在网关目录的 .env 中设置 ${variable}。`);
       const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
         method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + key},
